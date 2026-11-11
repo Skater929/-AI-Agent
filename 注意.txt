@@ -1,0 +1,22 @@
+内部工具、脚本项目、AI Agent、爬虫、数据处理、中小型的后端项目就是这么干的
+
+1. 统一以项目根作为工作目录（你的项目根：Al-agent）
+2. 启动优先：-m 顶层包.子包.模块
+3. 导入统一写：from 顶层包.shturl. import xxx（绝对导入）
+4. 可选：给每个包文件夹加空 __init__.py，买兼容性保险（不加也能跑，加了更稳）
+5. VSCode 调试配套：配置 `launch.json`，自动锁定 cwd、使用模块模式启动，支持断点调试
+
+launch.json：
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "运行 ds_agent",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "backend.wyh_agent.ds_agent",
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

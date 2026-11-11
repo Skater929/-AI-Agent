@@ -1,0 +1,18 @@
+# 1. 过滤 .env 环境变量文件（最重要）
+.env
+
+# 2. 过滤 Python 虚拟环境文件夹
+.venv/
+venv/
+
+# 3. 过滤 Python 编译产生的缓存文件
+__pycache__/
+*.pyc
+
+# 4. 过滤 IDE 编辑器生成的配置文件（如 VSCode）
+.vscode/
+.idea/
+
+# 5. 过滤操作系统垃圾文件（可选）
+.DS_Store
+Thumbs.db
