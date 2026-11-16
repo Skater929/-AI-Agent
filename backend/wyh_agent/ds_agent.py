@@ -88,14 +88,22 @@ def run_agent(task, messages, max_steps=8):
         # append([4,5]) 后: [1, 2, 3, [4, 5]]  ← 整个列表被当成一个元素
         # extend([3,4]) 后: [1, 2, 3, 4]  ← 元素被拆开逐个加入
         msg = response.choices[0].message
-        messages.append(msg)
 
-        # 如果 msg.tool_calls 为空列表，说明模型这次没有调用工具，已经给出最终答案，可以直接返回。
+        # 不直接append(msg)，转成标准字典避免422错误
+        assistant_message = {
+            "role": "assistant",
+            "content": msg.content,
+        }
+
+        if msg.tool_calls:
+            assistant_message["tool_calls"] = msg.tool_calls
+        messages.append(assistant_message)
+
+        # 没有工具调用：模型已给出最终答案，先入库再返回它的回复
         if not msg.tool_calls:
             return msg.content
 
-        # 如果 msg.tool_calls 不为空，就说明模型想调用工具，程序会继续遍历 calls，逐个执行对应函数。
-
+        # 如果 msg.tool_calls 不为空，说明模型想调用工具，程序会继续遍历 calls，逐个执行对应函数。
         # 一轮API拿到一批工具任务 本地全部跑完 补齐结果记录再重新找模型
         # 直到模型说不用工具、直接出答案
         # 并行模式 非串行模式
@@ -114,6 +122,17 @@ def run_agent(task, messages, max_steps=8):
             # print("调用", call.function.name, call.function.arguments, "=>", result)
             # 只打印调用外部函数 不显示结果
             print("调用", call.function.name)
+
+            # 确保content一定是字符串，避免422错误
+            if result is None:
+                result = ""
+            elif not isinstance(result, str):
+                try:
+                    # JSON 字符串本质就是字符串 可以添加到content
+                    result = json.dumps(result, ensure_ascii=False)
+                except (TypeError, ValueError):
+                    result = str(result)
+
             #  把工具执行结果以 role="tool" 的标准消息格式写回对话历史
             # 这条消息用来给模型返回工具执行结果，和上面的tool_call配对
 
@@ -124,6 +143,10 @@ def run_agent(task, messages, max_steps=8):
                     "content": result,
                 }
             )
+        # ← 注意：这里绝不能写 return，跑完工具要自然回到 for 顶部，
+        #    下一轮 create 才会带上刚写进去的 tool 消息，让模型基于结果继续作答
+
+    # 真正跑满 max_steps 还没拿到最终答案，才走这句（缩进在 for 外面）
     return "超过最大步骤，已停止"
 
 
@@ -132,7 +155,6 @@ if __name__ == "__main__":
     conversation_buffer = []  # 暂存最近20轮对话
     while True:
         user_input = input("用户：").strip()
-        conversation_buffer.append(f"{user_input}")
         if not user_input:
             print("输入不能为空，请重新输入")
             continue
@@ -143,12 +165,12 @@ if __name__ == "__main__":
         if user_input.lower() == "new":
             # 清空会话：只保留系统指令，去掉历史对话
             # 第一种情况 messagess = [] 时 则
-
             messages.clear()
             # 第二种情况 需要用到系统指令时 则
             # messagess = [messagess[0]]  # 保留第一条system消息
             print("已开启新对话")
             continue
+        conversation_buffer.append(user_input)
         agent_result = run_agent(user_input, messages)
         conversation_buffer.append(f"Assistant: {agent_result}")
         print(f"\n模型: {agent_result}")

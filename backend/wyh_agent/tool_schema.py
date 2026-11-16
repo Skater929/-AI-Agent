@@ -5,6 +5,7 @@ from backend.wyh_agent.function_calling.search_note import search_note
 from backend.wyh_agent.function_calling.get_weather import get_weather
 from backend.wyh_agent.function_calling.user_profile.delete_profile import delete_profile
 from backend.wyh_agent.function_calling.user_profile.save_from_llm import save_from_llm
+from backend.wyh_agent.function_calling.user_profile.show_profile import show_profile
 
 # 工具函数集合
 FUNCTIONS = {
@@ -14,6 +15,7 @@ FUNCTIONS = {
     "get_weather": get_weather,
     "save_from_llm": save_from_llm,
     "delete_profile": delete_profile,
+    "show_profile": show_profile,
 }
 
 # 工具描述列表，告诉模型"有哪些工具可用、每个工具需要什么参数"
@@ -155,6 +157,21 @@ TOOLS = [
                 "long_term_memory": {"type": "array", "items": {"type": "string"}, "description": "要删除的记忆内容"},
                 "active_tasks_active": {"type": "array", "items": {"type": "string"}, "description": "要删除的任务名"},
                 "required": ["long_term_memory", "active_tasks_active"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    # 第二个工具：用户偏好信息，包含基本信息、长期记忆和活跃任务
+    {
+        "type": "function",
+        "function": {
+            "name": "show_profile",
+            "strict": True,
+            "description": "获取用户偏好信息，包含基本信息、长期记忆和活跃任务",
+            "parameters": {
+                "type": "object",
+                # properties为空，代表这个工具不需要传入任何参数
+                "properties": {},
                 "additionalProperties": False,
             },
         },

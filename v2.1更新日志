@@ -1,0 +1,6 @@
+1.把模型返回的 ChatCompletionMessage 对象转成标准字典再写入消息历史，同时把工具执行结果强制转成字符串
+避免 API 收到非标准对象或非字符串 content 而报 422 错误。
+
+2.conversation_buffer.append 从输入后立即执行，挪到 exit/new/空输入判断之后，以此避免命令和空行污染摘要缓冲
+
+3.添加查看个人用户偏好的外部工具
