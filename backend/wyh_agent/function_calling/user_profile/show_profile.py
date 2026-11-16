@@ -1,4 +1,4 @@
-import backend.wyh_agent.function_calling.user_profile.load_profile as load_profile
+from backend.wyh_agent.function_calling.user_profile.load_profile import load_profile
 import json
 
 

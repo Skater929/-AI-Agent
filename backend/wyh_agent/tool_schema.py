@@ -1,7 +1,10 @@
+# 全部为绝对导入
 from backend.wyh_agent.function_calling.calculator import calculator
 from backend.wyh_agent.function_calling.current_time import current_time
 from backend.wyh_agent.function_calling.search_note import search_note
 from backend.wyh_agent.function_calling.get_weather import get_weather
+from backend.wyh_agent.function_calling.user_profile.delete_profile import delete_profile
+from backend.wyh_agent.function_calling.user_profile.save_from_llm import save_from_llm
 
 # 工具函数集合
 FUNCTIONS = {
@@ -9,6 +12,8 @@ FUNCTIONS = {
     "current_time": current_time,
     "search_note": search_note,
     "get_weather": get_weather,
+    "save_from_llm": save_from_llm,
+    "delete_profile": delete_profile,
 }
 
 # 工具描述列表，告诉模型"有哪些工具可用、每个工具需要什么参数"
@@ -83,9 +88,7 @@ TOOLS = [
             "description": "在本地固定笔记文件中搜索关键词，查找相关笔记内容，最多返回5条匹配行；仅用于查询笔记",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "KEYWORD": {"type": "string", "description": "要查询的关键词"}
-                },
+                "properties": {"KEYWORD": {"type": "string", "description": "要查询的关键词"}},
                 "required": ["KEYWORD"],
                 "additionalProperties": False,
             },
@@ -100,10 +103,58 @@ TOOLS = [
             "description": "获取当前某个城市的天气、气温、体感温度的信息",
             "parameters": {
                 "type": "object",
-                "properties": {
-                    "city_name": {"type": "string", "description": "需要查询的城市名"}
-                },
+                "properties": {"city_name": {"type": "string", "description": "需要查询的城市名"}},
                 "required": ["city_name"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "save_from_llm",
+            "strict": True,
+            "description": "保存用户偏好信息，包含基本信息、长期记忆和活跃任务",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "basic_info": {
+                        "type": "object",
+                        "properties": {
+                            "name": {"type": "string", "description": "用户姓名"},
+                            "age": {"type": "string", "description": "用户年龄"},
+                            "job": {"type": "string", "description": "用户的职业或工作"},
+                            "preference": {"type": "array", "items": {"type": "string"}, "description": "用户的偏好"},
+                        },
+                        "required": ["name", "age", "job", "preference"],
+                        "additionalProperties": False,
+                    },
+                    "long_term_memory": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "用户要求长期记忆的关键词",
+                    },
+                    "active_tasks_active": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "用户待完成的任务或工作",
+                    },
+                },
+                "required": ["basic_info", "long_term_memory", "active_tasks_active"],
+                "additionalProperties": False,
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "delete_profile",
+            "strict": True,
+            "description": "删除用户偏好信息，包含字段：long_term_memory active_tasks_active",
+            "parameters": {
+                "long_term_memory": {"type": "array", "items": {"type": "string"}, "description": "要删除的记忆内容"},
+                "active_tasks_active": {"type": "array", "items": {"type": "string"}, "description": "要删除的任务名"},
+                "required": ["long_term_memory", "active_tasks_active"],
                 "additionalProperties": False,
             },
         },

@@ -1,31 +1,22 @@
 import json
-import backend.wyh_agent.function_calling.user_profile.load_profile as load_profile
-import backend.wyh_agent.function_calling.user_profile.save_profile as save_profile
-from openai import OpenAI
+from backend.wyh_agent.function_calling.user_profile.load_profile import load_profile
+from backend.wyh_agent.function_calling.user_profile.save_profile import save_profile
 
 
-def save_from_llm(llm_output):
+def save_from_llm(basic_info, long_term_memory=None, active_tasks_active=None):
     # 设置JSON的schema强约束
     """
     {
         "basic_info": {
             "name":"",
             "age":"",
-            "job:"",
-            "preferences":[]
+            "job":"",
+            "preference":[]
         },
-        "long_term_memory": [""]
+        "long_term_memory": [""],
         "active_tasks_active":[""]
     }
     """
-
-    # isinstance(obj, type) 判断对象类型
-    if isinstance(llm_output, str):
-        # 如果是字符串，就解析成 dict
-        data = json.loads(llm_output)
-    else:
-        # 如果已经是 dict，直接用
-        data = llm_output
 
     profile = load_profile()  # 调用 load_profile()，读取当前持久化的字典
 
@@ -34,30 +25,35 @@ def save_from_llm(llm_output):
     profile.setdefault("basic_info", {})
     profile.setdefault("long_term_memory", [])
     profile.setdefault("active_tasks_active", [])
-    profile["basic_info"].setdefault("preferences", [])  # preferences 初始化为列表
+    profile["basic_info"].setdefault("preference", [])  # preference 初始化为列表
 
     results = []  # 初始化空列表，用于收集每条操作的提示信息
 
-    for key, value in data.items():  # 遍历字典的所有键值对
-        # 语法：dict.items() 返回 (key, value) 元组的可迭代对象；
-        # for a, b in ... 是元组解包赋值
-        if key == "preferences":
-            profile["basic_info"]["preferences"].extend(value)
-            results.append("偏好已追加")
-        elif key in ["name", "age", "job"]:
-            # 常规偏好 -> 存入 basic_info 抽屉
-            profile["basic_info"][key] = value
-            results.append(f"个人信息已更新")
+    # 处理 basic_info 这个嵌套对象
+    # 因为大模型返回的 JSON 中 name/age/job/preference 都在 basic_info 里面
+    for key in ["name", "age", "job"]:  # 遍历基本信息的字段
+        if key in basic_info:
+            # 常规个人信息 -> 存入 basic_info 抽屉
+            profile["basic_info"][key] = basic_info[key]
+            results.append(f"{key}已更新")
 
-        elif key == "long_term_memory":
-            profile["long_term_memory"].append(value)
-            results.append("记忆已追加")
+    # 列表 单独处理
+    if "preference" in basic_info:
+        # list.extend(iterable) 将一个列表的所有元素追加到另一个列表中
+        profile["basic_info"]["preference"].extend(basic_info["preference"])
+        results.append("偏好已追加")
 
-        elif key == "active_tasks_active":
-            profile["active_tasks_active"].extend(value)
-            results.append("新任务已加入列表")
+    # 处理顶层数组字段
+    if long_term_memory:
+        # 用 extend 而不是 append，避免嵌套列表 [[...]]
+        # list.extend(iterable) 将一个列表的所有元素追加到另一个列表中
+        profile["long_term_memory"].extend(long_term_memory)
+        results.append("记忆已追加")
 
-        # 注意：这里用 elif 而不是 if，避免一个 key 同时命中多个分支
+    if active_tasks_active:
+        # list.extend(iterable) 将一个列表的所有元素追加到另一个列表中
+        profile["active_tasks_active"].extend(active_tasks_active)
+        results.append("新任务已加入列表")
 
     save_profile(profile)  # 所有字段改完后，一次性写回文件
     return "; ".join(results)  # "; ".join(list) 用分号+空格把列表拼成一个字符串返回
